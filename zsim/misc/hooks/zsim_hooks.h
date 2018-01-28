@@ -16,14 +16,14 @@
 #define ZSIM_MAGIC_OP_WORK_END          (1030) //ubik
 
 #ifdef __x86_64__
-#define HOOKS_STR  "HOOKS"
+#define HOOKS_STR  "ZSIM-HOOKS"
 static inline void zsim_magic_op(uint64_t op) {
     COMPILER_BARRIER();
     __asm__ __volatile__("xchg %%rcx, %%rcx;" : : "c"(op));
     COMPILER_BARRIER();
 }
 #else
-#define HOOKS_STR  "NOP-HOOKS"
+#define HOOKS_STR  "ZSIM-NOP-HOOKS"
 static inline void zsim_magic_op(uint64_t op) {
     //NOP
 }
