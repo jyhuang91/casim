@@ -1,0 +1,22 @@
+# PATH for scons and h5
+export PATH=${PWD}/tools/local/bin:$PATH
+
+#Intel Pin, set pin path
+export PINPATH=${PWD}/tools/pin-2.14-71313-gcc.4.4.7-linux
+
+# Libconfig, set your libconfig path
+export LIBCONFIGPATH=${PWD}/tools/local
+
+# parsec
+export PARSEC=${PWD}/benchmarks/parsec-2.1
+export PARSECBIN=${PWD}/benchmarks/parsec-2.1/bin
+export PARSECINPUTS=${PWD}/benchmarks/parsec-2.1/inputs
+
+# SPEC CPU2006
+export CPU2006=${PWD}/benchmarks/spec_cpu2006
+export CPU2006BIN=${PWD}/benchmarks/spec_cpu2006/bin
+export CPU2006DATA=${PWD}/benchmarks/spec_cpu2006/data
+
+# zsim
+export ZSIMPATH=${PWD}/zsim
+export ZSIMHOOKS=${PWD}/zsim/misc/hooks
