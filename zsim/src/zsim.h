@@ -32,6 +32,8 @@
 #include "debug.h"
 #include "locks.h"
 #include "pad.h"
+#include "dict_info.h"  // approx
+#include "tree23.h"
 
 class Core;
 class Scheduler;
@@ -123,6 +125,7 @@ struct GlobSimInfo {
     PortVirtualizer* portVirt[MAX_PORT_DOMAINS];
 
     lock_t ffLock; //global, grabbed in all ff entry/exit ops.
+    lock_t approxLock; //global, grabbed in all approx ops
 
     volatile uint32_t globalActiveProcs; //used for termination
     //Counters below are used for deadlock detection
@@ -191,6 +194,9 @@ extern uint32_t lineBits; //process-local for performance, but logically global
 extern uint64_t procMask;
 
 extern GlobSimInfo* zinfo;
+
+extern const dict_info_t approxInfo;
+extern tree23_t* approxTree23;
 
 //Process-wide functions, defined in zsim.cpp
 uint32_t getCid(uint32_t tid);

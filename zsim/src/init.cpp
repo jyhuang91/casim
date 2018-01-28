@@ -1030,6 +1030,10 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
 
     zinfo->contentionSim->postInit();
 
+    // Init approximation regions
+    approxTree23 = (tree23_t *) approxInfo.alloc(compare, nullptr);
+    gm_set_approx_ptr(approxTree23);
+
     info("Initialization complete");
 
     //Causes every other process to wake up

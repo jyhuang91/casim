@@ -53,6 +53,7 @@
 struct gm_segment {
     volatile void* base_regp; //common data structure, accessible with glob_ptr; threads poll on gm_isready to determine when everything has been initialized
     volatile void* secondary_regp; //secondary data structure, used to exchange information between harness and initializing process
+    volatile void* approx_regp; // approximation region data struction, accessible with approx_ptr
     mspace mspace_ptr;
 
     PAD();
@@ -101,6 +102,7 @@ int gm_init(size_t segmentSize) {
     char* alloc_start = reinterpret_cast<char*>(GM) + 1024;
     size_t alloc_size = segmentSize - 1 - 1024;
     GM->base_regp = nullptr;
+    GM->approx_regp = nullptr; // approx
 
     GM->mspace_ptr = create_mspace_with_base(alloc_start, alloc_size, 1 /*locked*/);
     futex_init(&GM->lock);
@@ -191,6 +193,19 @@ void* gm_get_secondary_ptr() {
     assert(GM);
     assert(GM->secondary_regp != nullptr);
     return const_cast<void*>(GM->secondary_regp);  // devolatilize
+}
+
+// approximation
+void gm_set_approx_ptr(void* ptr) {
+    assert(GM);
+    assert(GM->approx_regp == nullptr);
+    GM->approx_regp = ptr;
+}
+
+void* gm_get_approx_ptr() {
+    assert(GM);
+    assert(GM->approx_regp);
+    return const_cast<void*>(GM->approx_regp);  // devolatileize
 }
 
 void gm_stats() {

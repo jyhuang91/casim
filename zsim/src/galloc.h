@@ -59,6 +59,10 @@ void* gm_get_glob_ptr();
 void gm_set_secondary_ptr(void* ptr);
 void* gm_get_secondary_ptr();
 
+// approximation
+void gm_set_approx_ptr(void* ptr);
+void* gm_get_approx_ptr();
+
 void gm_stats();
 
 bool gm_isready();

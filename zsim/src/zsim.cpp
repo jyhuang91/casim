@@ -95,6 +95,19 @@ INT32 Usage() {
 
 GlobSimInfo* zinfo;
 
+/* approximation */
+const dict_info_t approxInfo = {
+    _tree23_alloc,
+    _tree23_free,
+    _tree23_insert,
+    _tree23_delete,
+    _tree23_delete_min,
+    _tree23_find,
+    _tree23_find_min
+};
+
+tree23_t* approxTree23;
+
 /* Per-process variables */
 
 uint32_t procIdx;
@@ -610,6 +623,71 @@ VOID Trace(TRACE trace, VOID *v) {
     for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
         for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
             Instruction(ins);
+        }
+    }
+}
+
+
+VOID RegisterApproxRegion(uint32_t tid, VOID* baseAddr, uint32_t range, CHAR* dataType) {
+    futex_lock(&zinfo->approxLock);
+    fprintf(stderr, "ZSim: Thread %d register approximate region (addr %p, range %u, type %s)\n", tid, baseAddr, range, dataType);
+
+    approx_region_t* approxRegion = gm_malloc<approx_region_t>();
+    approxRegion->addr = baseAddr;
+    approxRegion->range = range;
+    if (strstr(dataType, "float") || strstr(dataType, "fptype")) {
+        approxRegion->approx_type = approx_fp;
+    } else if (strstr(dataType, "int")) {
+        approxRegion->approx_type = approx_uint;
+    } else {
+        fprintf(stderr, "error type: %s\n", dataType);
+        assert(dataType == nullptr);
+    }
+
+    // alignment
+    uint32_t lineSize = zinfo->lineSize;
+    Address addrStart = (Address) baseAddr;
+    addrStart = ((addrStart - 1) >> lineBits) * lineSize;
+    approxRegion->addr_start = (VOID *) (addrStart + lineSize);
+    Address addrEnd = (Address) baseAddr + range;
+    approxRegion->addr_end = (VOID *) ((addrEnd >> lineBits) * lineSize);
+
+    approxInfo.insert(approxTree23, approxRegion);
+
+    futex_unlock(&zinfo->approxLock);
+}
+
+VOID DeregisterApproxRegion(uint32_t tid, VOID* baseAddr) {
+    futex_lock(&zinfo->approxLock);
+    fprintf(stderr, "ZSim: Thread %d deregister approximate region addr %p\n", tid, baseAddr);
+
+    approx_region_t* approxRegion = (approx_region_t *) approxInfo.delete_item(approxTree23, baseAddr);
+    if (approxRegion) {
+        gm_free(approxRegion);
+        approxRegion = nullptr;
+    }
+
+    futex_unlock(&zinfo->approxLock);
+}
+
+VOID Routine(RTN rtn) {
+    if (strstr(RTN_Name(rtn).c_str(), "deregisterApproxRegion")) {
+        RTN_ReplaceSignature(rtn, (AFUNPTR) DeregisterApproxRegion, IARG_THREAD_ID,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                IARG_END);
+    } else if (strstr(RTN_Name(rtn).c_str(), "registerApproxRegion")) {
+        RTN_ReplaceSignature(rtn, (AFUNPTR) RegisterApproxRegion, IARG_THREAD_ID,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+                IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+                IARG_END);
+    }
+}
+
+VOID Image(IMG img, VOID *v) {
+    for (SEC sec = IMG_SecHead(img); SEC_Valid(sec); sec = SEC_Next(sec)) {
+        for (RTN rtn = SEC_RtnHead(sec); RTN_Valid(rtn); rtn = RTN_Next(rtn)) {
+            Routine(rtn);
         }
     }
 }
@@ -1463,6 +1541,7 @@ int main(int argc, char *argv[]) {
     } else {
         while (!gm_isready()) usleep(1000);  // wait till proc idx 0 initializes everything
         zinfo = static_cast<GlobSimInfo*>(gm_get_glob_ptr());
+        approxTree23 = static_cast<tree23_t*>(gm_get_approx_ptr());
     }
 
     //If assertion below fails, use this to print maps
@@ -1529,6 +1608,7 @@ int main(int argc, char *argv[]) {
     VirtInit();
 
     //Register instrumentation
+    IMG_AddInstrumentFunction(Image, 0);
     TRACE_AddInstrumentFunction(Trace, 0);
     VdsoInit(); //initialized vDSO patching information (e.g., where all the possible vDSO entry points are)
 
