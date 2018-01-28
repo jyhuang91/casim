@@ -14,6 +14,7 @@
 #define ZSIM_MAGIC_OP_HEARTBEAT         (1028)
 #define ZSIM_MAGIC_OP_WORK_BEGIN        (1029) //ubik
 #define ZSIM_MAGIC_OP_WORK_END          (1030) //ubik
+#define ZSIM_MAGIC_OP_APPROX            (1031)
 
 #ifdef __x86_64__
 #define HOOKS_STR  "ZSIM-HOOKS"
@@ -45,5 +46,11 @@ static inline void zsim_heartbeat() {
 
 static inline void zsim_work_begin() { zsim_magic_op(ZSIM_MAGIC_OP_WORK_BEGIN); }
 static inline void zsim_work_end() { zsim_magic_op(ZSIM_MAGIC_OP_WORK_END); }
+
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+static void registerApproxRegion(void * data, uint64_t range, const char * data_type) {}
+static void deregisterApproxRegion(void * data) {}
+#pragma GCC pop_options
 
 #endif /*__ZSIM_HOOKS_H__*/
