@@ -184,6 +184,9 @@ struct GlobSimInfo {
     // Trace-driven simulation (no cores)
     bool traceDriven;
     TraceDriver* traceDriver;
+
+    // Approximate computing
+    bool approximate;
 };
 
 

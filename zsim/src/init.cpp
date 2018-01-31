@@ -874,7 +874,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
 
     Config config(configFile);
 
-    zinfo->outputDir = gm_strdup(config.get<const char*>("pin.outputDir", outputDir));
+    zinfo->outputDir = gm_strdup(config.get<const char*>("sim.outputDir", outputDir));
 
     //Debugging
     //NOTE: This should be as early as possible, so that we can attach to the debugger before initialization.
@@ -1033,6 +1033,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     // Init approximation regions
     approxTree23 = (tree23_t *) approxInfo.alloc(compare, nullptr);
     gm_set_approx_ptr(approxTree23);
+    zinfo->approximate = config.get<bool>("sim.approximate", false);
 
     info("Initialization complete");
 

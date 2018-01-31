@@ -26,6 +26,7 @@
 #include "coherence_ctrls.h"
 #include "cache.h"
 #include "network.h"
+#include "zsim.h"
 
 /* Do a simple XOR block hash on address to determine its bank. Hacky for now,
  * should probably have a class that deals with this with a real hash function
@@ -196,6 +197,17 @@ uint64_t MESIBottomCC::processNonInclusiveWriteback(Address lineAddr, AccessType
 }
 
 
+bool MESIBottomCC::isApprox(const Address lineAddr) {
+    uint32_t *value = (uint32_t *) (lineAddr << lineBits);
+    Address addr = (Address) value;
+    approx_region_t * approxRegion = (approx_region_t *) approxInfo.find(approxTree23, (void *) addr);
+    if (approxRegion && (addr >= (Address) approxRegion->addr_start) && (addr < (Address) approxRegion->addr_end)) {
+        return true;
+    }
+    return false;
+}
+
+
 /* MESITopCC implementation */
 
 void MESITopCC::init(const g_vector<BaseCache*>& _children, Network* network, const char* name) {
@@ -339,5 +351,15 @@ uint64_t MESITopCC::processInval(Address lineAddr, uint32_t lineId, InvType type
         //Just invalidate or downgrade down to children as needed
         return sendInvalidates(lineAddr, lineId, type, reqWriteback, cycle, srcId);
     }
+}
+
+bool MESITopCC::isApprox(const Address lineAddr) {
+    uint32_t *value = (uint32_t *) (lineAddr << lineBits);
+    Address addr = (Address) value;
+    approx_region_t * approxRegion = (approx_region_t *) approxInfo.find(approxTree23, (void *) addr);
+    if (approxRegion && (addr >= (Address) approxRegion->addr_start) && (addr < (Address) approxRegion->addr_end)) {
+        return true;
+    }
+    return false;
 }
 

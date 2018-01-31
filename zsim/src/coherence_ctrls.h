@@ -154,6 +154,8 @@ class MESIBottomCC : public GlobAlloc {
 
         uint64_t processNonInclusiveWriteback(Address lineAddr, AccessType type, uint64_t cycle, MESIState* state, uint32_t srcId, uint32_t flags, Address pc);
 
+        bool isApprox(const Address lineAddr);
+
         inline void lock() {
             futex_lock(&ccLock);
         }
@@ -226,6 +228,8 @@ class MESITopCC : public GlobAlloc {
                 MESIState* childState, bool* inducedWriteback, uint64_t cycle, uint32_t srcId, uint32_t flags);
 
         uint64_t processInval(Address lineAddr, uint32_t lineId, InvType type, bool* reqWriteback, uint64_t cycle, uint32_t srcId);
+
+        bool isApprox(const Address lineAddr);
 
         inline void lock() {
             futex_lock(&ccLock);
