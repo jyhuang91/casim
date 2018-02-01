@@ -1024,6 +1024,9 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     if (!zinfo->attachDebugger) config.get<bool>("sim.deadlockDetection", true);
     config.get<bool>("sim.aslr", false);
 
+    // Enable approximate computing
+    zinfo->approximate = config.get<bool>("sim.approximate", false);
+
     //Write config out
     bool strictConfig = config.get<bool>("sim.strictConfig", true); //if true, panic on unused variables
     config.writeAndClose((string(zinfo->outputDir) + "/out.cfg").c_str(), strictConfig);
@@ -1033,7 +1036,6 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     // Init approximation regions
     approxTree23 = (tree23_t *) approxInfo.alloc(compare, nullptr);
     gm_set_approx_ptr(approxTree23);
-    zinfo->approximate = config.get<bool>("sim.approximate", false);
 
     info("Initialization complete");
 
