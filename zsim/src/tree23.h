@@ -27,6 +27,7 @@ enum eApproxType {
 };
 
 typedef eApproxType e_approx_t;
+typedef eApproxType ApproxType;
 
 typedef struct _ApproxRegion {
     void * addr;
@@ -35,6 +36,8 @@ typedef struct _ApproxRegion {
     void * addr_end;
     e_approx_t approx_type;
 } approx_region_t;
+
+typedef struct _ApproxRegion ApproxRegion;
 
 struct tree23_node;
 typedef union tree23_link {

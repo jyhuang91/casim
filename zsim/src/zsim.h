@@ -184,6 +184,9 @@ struct GlobSimInfo {
     // Trace-driven simulation (no cores)
     bool traceDriven;
     TraceDriver* traceDriver;
+
+    // Approximate computing
+    bool approximate;
 };
 
 
@@ -199,6 +202,7 @@ extern const dict_info_t approxInfo;
 extern tree23_t* approxTree23;
 
 //Process-wide functions, defined in zsim.cpp
+ApproxType getApproxType(const uint64_t lineAddr);
 uint32_t getCid(uint32_t tid);
 uint32_t TakeBarrier(uint32_t tid, uint32_t cid);
 void SimEnd(); //only call point out of zsim.cpp should be watchdog threads

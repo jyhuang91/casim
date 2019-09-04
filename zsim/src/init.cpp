@@ -874,7 +874,7 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
 
     Config config(configFile);
 
-    zinfo->outputDir = gm_strdup(config.get<const char*>("pin.outputDir", outputDir));
+    zinfo->outputDir = gm_strdup(config.get<const char*>("sim.outputDir", outputDir));
 
     //Debugging
     //NOTE: This should be as early as possible, so that we can attach to the debugger before initialization.
@@ -1023,6 +1023,9 @@ void SimInit(const char* configFile, const char* outputDir, uint32_t shmid) {
     config.get<uint32_t>("sim.gmMBytes", (1 << 10));
     if (!zinfo->attachDebugger) config.get<bool>("sim.deadlockDetection", true);
     config.get<bool>("sim.aslr", false);
+
+    // Enable approximate computing
+    zinfo->approximate = config.get<bool>("sim.approximate", false);
 
     //Write config out
     bool strictConfig = config.get<bool>("sim.strictConfig", true); //if true, panic on unused variables

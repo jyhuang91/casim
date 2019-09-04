@@ -129,7 +129,8 @@ class FilterCache : public Cache {
             Address pLineAddr = procMask | vLineAddr;
             MESIState dummyState = MESIState::I;
             futex_lock(&filterLock);
-            MemReq req = {pLineAddr, isLoad? GETS : GETX, 0, &dummyState, curCycle, &filterLock, dummyState, srcId, reqFlags, pc};
+            ApproxType approxType = zinfo->approximate ? getApproxType(vLineAddr) : no_approx;
+            MemReq req = {pLineAddr, isLoad? GETS : GETX, 0, &dummyState, curCycle, &filterLock, dummyState, srcId, reqFlags, pc, approxType};
             uint64_t respCycle  = access(req);
 
             //Due to the way we do the locking, at this point the old address might be invalidated, but we have the new address guaranteed until we release the lock

@@ -135,6 +135,7 @@ void TraceDriver::executeAccess(AccessRecord acc) {
                 if (it == cStore.end()) return; //we don't currently have this line, skip
                 MemReq req = {acc.lineAddr, acc.type, acc.childId, &it->second, acc.reqCycle, nullptr, it->second, acc.childId};
                 req.pc = acc.pc;
+                req.approxType = acc.approxType;
                 lat = parent->access(req) - acc.reqCycle; //note that PUT latency does not affect driver latency
                 assert(it->second == I);
                 cStore.erase(it);
@@ -150,6 +151,7 @@ void TraceDriver::executeAccess(AccessRecord acc) {
                         if (playAllGets) { //issue a PUT
                             MemReq req = {acc.lineAddr, (it->second == M)? PUTX : PUTS, acc.childId, &it->second, acc.reqCycle, nullptr, it->second, acc.childId};
                             req.pc = acc.pc;
+                            req.approxType = acc.approxType;
                             parent->access(req);
                             assert(it->second == I);
                         } else {
@@ -161,6 +163,7 @@ void TraceDriver::executeAccess(AccessRecord acc) {
                 }
                 MemReq req = {acc.lineAddr, acc.type, acc.childId, &state, acc.reqCycle, nullptr, state, acc.childId};
                 req.pc = acc.pc;
+                req.approxType = acc.approxType;
                 uint64_t respCycle = parent->access(req);
                 lat = respCycle - acc.reqCycle;
                 children[acc.childId].profLat.inc(lat);

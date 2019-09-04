@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
     if (aslr) info("Not disabling ASLR, multiprocess runs will fail");
 
     //Create children processes
-    outputDir = conf.get<const char*>("pin.outputDir", outputDir);
+    outputDir = conf.get<const char*>("sim.outputDir", outputDir);
     pinCmd = new PinCmd(&conf, configFile, outputDir, shmid);
     uint32_t numProcs = pinCmd->getNumCmdProcs();
 

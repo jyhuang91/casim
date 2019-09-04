@@ -108,6 +108,16 @@ const dict_info_t approxInfo = {
 
 tree23_t* approxTree23;
 
+ApproxType getApproxType(const Address lineAddr) {
+    void *value = (void *) (lineAddr << lineBits);
+    Address addr = (Address) value;
+    ApproxRegion * approxRegion = (ApproxRegion *) approxInfo.find(approxTree23, (void *) addr);
+    if (approxRegion && (addr >= (Address) approxRegion->addr_start) && (addr < (Address) approxRegion->addr_end)) {
+        return approxRegion->approx_type;
+    }
+    return no_approx;
+}
+
 /* Per-process variables */
 
 uint32_t procIdx;
@@ -632,7 +642,7 @@ VOID RegisterApproxRegion(uint32_t tid, VOID* baseAddr, uint32_t range, CHAR* da
     futex_lock(&zinfo->approxLock);
     fprintf(stderr, "ZSim: Thread %d register approximate region (addr %p, range %u, type %s)\n", tid, baseAddr, range, dataType);
 
-    approx_region_t* approxRegion = gm_malloc<approx_region_t>();
+    ApproxRegion* approxRegion = gm_malloc<ApproxRegion>();
     approxRegion->addr = baseAddr;
     approxRegion->range = range;
     if (strstr(dataType, "float") || strstr(dataType, "fptype")) {
@@ -661,7 +671,7 @@ VOID DeregisterApproxRegion(uint32_t tid, VOID* baseAddr) {
     futex_lock(&zinfo->approxLock);
     fprintf(stderr, "ZSim: Thread %d deregister approximate region addr %p\n", tid, baseAddr);
 
-    approx_region_t* approxRegion = (approx_region_t *) approxInfo.delete_item(approxTree23, baseAddr);
+    ApproxRegion* approxRegion = (ApproxRegion *) approxInfo.delete_item(approxTree23, baseAddr);
     if (approxRegion) {
         gm_free(approxRegion);
         approxRegion = nullptr;
