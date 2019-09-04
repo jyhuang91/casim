@@ -54,7 +54,7 @@ void MESIBottomCC::init(const g_vector<MemObject*>& _parents, Network* network, 
 }
 
 
-uint64_t MESIBottomCC::processEviction(Address wbLineAddr, uint32_t lineId, bool lowerLevelWriteback, uint64_t cycle, uint32_t srcId, Address pc = 0) {
+uint64_t MESIBottomCC::processEviction(Address wbLineAddr, uint32_t lineId, bool lowerLevelWriteback, uint64_t cycle, uint32_t srcId, Address pc = 0, ApproxType approxType = no_approx) {
     MESIState* state = &array[lineId];
     if (lowerLevelWriteback) {
         //If this happens, when tcc issued the invalidations, it got a writeback. This means we have to do a PUTX, i.e. we have to transition to M if we are in E
@@ -68,13 +68,13 @@ uint64_t MESIBottomCC::processEviction(Address wbLineAddr, uint32_t lineId, bool
         case S:
         case E:
             {
-                MemReq req = {wbLineAddr, PUTS, selfId, state, cycle, &ccLock, *state, srcId, 0 /*no flags*/, pc};
+                MemReq req = {wbLineAddr, PUTS, selfId, state, cycle, &ccLock, *state, srcId, 0 /*no flags*/, pc, approxType};
                 respCycle = parents[getParentId(wbLineAddr)]->access(req);
             }
             break;
         case M:
             {
-                MemReq req = {wbLineAddr, PUTX, selfId, state, cycle, &ccLock, *state, srcId, 0 /*no flags*/, pc};
+                MemReq req = {wbLineAddr, PUTX, selfId, state, cycle, &ccLock, *state, srcId, 0 /*no flags*/, pc, no_approx}; // XXX: don't approximate modified
                 respCycle = parents[getParentId(wbLineAddr)]->access(req);
             }
             break;
@@ -85,7 +85,7 @@ uint64_t MESIBottomCC::processEviction(Address wbLineAddr, uint32_t lineId, bool
     return respCycle;
 }
 
-uint64_t MESIBottomCC::processAccess(Address lineAddr, uint32_t lineId, AccessType type, uint64_t cycle, uint32_t srcId, uint32_t flags, Address pc = 0) {
+uint64_t MESIBottomCC::processAccess(Address lineAddr, uint32_t lineId, AccessType type, uint64_t cycle, uint32_t srcId, uint32_t flags, Address pc = 0, ApproxType approxType = no_approx) {
     uint64_t respCycle = cycle;
     MESIState* state = &array[lineId];
     switch (type) {
@@ -105,7 +105,7 @@ uint64_t MESIBottomCC::processAccess(Address lineAddr, uint32_t lineId, AccessTy
         case GETS:
             if (*state == I) {
                 uint32_t parentId = getParentId(lineAddr);
-                MemReq req = {lineAddr, GETS, selfId, state, cycle, &ccLock, *state, srcId, flags, pc};
+                MemReq req = {lineAddr, GETS, selfId, state, cycle, &ccLock, *state, srcId, flags, pc, approxType};
                 uint32_t nextLevelLat = parents[parentId]->access(req) - cycle;
                 uint32_t netLat = parentRTTs[parentId];
                 profGETNextLevelLat.inc(nextLevelLat);
@@ -123,7 +123,7 @@ uint64_t MESIBottomCC::processAccess(Address lineAddr, uint32_t lineId, AccessTy
                 if (*state == I) profGETXMissIM.inc();
                 else profGETXMissSM.inc();
                 uint32_t parentId = getParentId(lineAddr);
-                MemReq req = {lineAddr, GETX, selfId, state, cycle, &ccLock, *state, srcId, flags, pc};
+                MemReq req = {lineAddr, GETX, selfId, state, cycle, &ccLock, *state, srcId, flags, pc, approxType};
                 uint32_t nextLevelLat = parents[parentId]->access(req) - cycle;
                 uint32_t netLat = parentRTTs[parentId];
                 profGETNextLevelLat.inc(nextLevelLat);
@@ -191,20 +191,9 @@ uint64_t MESIBottomCC::processNonInclusiveWriteback(Address lineAddr, AccessType
     if (!nonInclusiveHack) panic("Non-inclusive %s on line 0x%lx, this cache should be inclusive", AccessTypeName(type), lineAddr);
 
     //info("Non-inclusive wback, forwarding");
-    MemReq req = {lineAddr, type, selfId, state, cycle, &ccLock, *state, srcId, flags | MemReq::NONINCLWB, pc};
+    MemReq req = {lineAddr, type, selfId, state, cycle, &ccLock, *state, srcId, flags | MemReq::NONINCLWB, pc, no_approx};
     uint64_t respCycle = parents[getParentId(lineAddr)]->access(req);
     return respCycle;
-}
-
-
-bool MESIBottomCC::isApprox(const Address lineAddr) {
-    uint32_t *value = (uint32_t *) (lineAddr << lineBits);
-    Address addr = (Address) value;
-    approx_region_t * approxRegion = (approx_region_t *) approxInfo.find(approxTree23, (void *) addr);
-    if (approxRegion && (addr >= (Address) approxRegion->addr_start) && (addr < (Address) approxRegion->addr_end)) {
-        return true;
-    }
-    return false;
 }
 
 
@@ -351,15 +340,5 @@ uint64_t MESITopCC::processInval(Address lineAddr, uint32_t lineId, InvType type
         //Just invalidate or downgrade down to children as needed
         return sendInvalidates(lineAddr, lineId, type, reqWriteback, cycle, srcId);
     }
-}
-
-bool MESITopCC::isApprox(const Address lineAddr) {
-    uint32_t *value = (uint32_t *) (lineAddr << lineBits);
-    Address addr = (Address) value;
-    approx_region_t * approxRegion = (approx_region_t *) approxInfo.find(approxTree23, (void *) addr);
-    if (approxRegion && (addr >= (Address) approxRegion->addr_start) && (addr < (Address) approxRegion->addr_end)) {
-        return true;
-    }
-    return false;
 }
 

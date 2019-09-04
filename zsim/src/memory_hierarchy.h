@@ -32,6 +32,7 @@
 #include "g_std/g_vector.h"
 #include "galloc.h"
 #include "locks.h"
+#include "tree23.h"
 
 /** TYPES **/
 
@@ -102,6 +103,9 @@ struct MemReq {
 
     // load/store PC
     Address pc;
+
+    // approximate flag
+    ApproxType approxType;
 
     inline void set(Flag f) {flags |= f;}
     inline bool is (Flag f) const {return flags & f;}

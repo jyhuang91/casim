@@ -43,7 +43,7 @@ uint64_t TracingCache::access(MemReq& req) {
     uint64_t respCycle = Cache::access(req);
     futex_lock(&traceLock);
     uint32_t lat = respCycle - req.cycle;
-    AccessRecord acc = {req.lineAddr, req.cycle, lat, req.childId, req.type, req.pc};
+    AccessRecord acc = {req.lineAddr, req.cycle, lat, req.childId, req.type, req.pc, req.approxType};
     atw->write(acc);
     futex_unlock(&traceLock);
     return respCycle;

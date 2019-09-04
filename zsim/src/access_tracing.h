@@ -38,6 +38,7 @@ struct AccessRecord {
     uint32_t childId;
     AccessType type;
     Address pc; // load or store PC, 0 for instruction access
+    ApproxType approxType; // approximate data type
 };
 
 struct PackedAccessRecord {
@@ -47,7 +48,8 @@ struct PackedAccessRecord {
     uint16_t childId;
     uint16_t type;  // could be uint8_t, but causes corruption in HDF5? (wtf...)
     Address pc; // load or store PC, 0 for instruction access
-} /*__attribute__((packed))*/;  // 24 bytes --> no packing needed
+    ApproxType approxType; // approximate data type
+} /*__attribute__((packed))*/;  // 24 bytes --> no packing needed // XXX: may need packing due to enum
 
 
 class AccessTraceReader {

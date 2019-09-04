@@ -34,6 +34,7 @@
 #include "memory_hierarchy.h"
 #include "pad.h"
 #include "stats.h"
+#include "tree23.h"
 
 //TODO: Now that we have a pure CC interface, the MESI controllers should go on different files.
 
@@ -144,17 +145,15 @@ class MESIBottomCC : public GlobAlloc {
             parentStat->append(&profGETNetLat);
         }
 
-        uint64_t processEviction(Address wbLineAddr, uint32_t lineId, bool lowerLevelWriteback, uint64_t cycle, uint32_t srcId, Address pc);
+        uint64_t processEviction(Address wbLineAddr, uint32_t lineId, bool lowerLevelWriteback, uint64_t cycle, uint32_t srcId, Address pc, ApproxType approxType);
 
-        uint64_t processAccess(Address lineAddr, uint32_t lineId, AccessType type, uint64_t cycle, uint32_t srcId, uint32_t flags, Address pc);
+        uint64_t processAccess(Address lineAddr, uint32_t lineId, AccessType type, uint64_t cycle, uint32_t srcId, uint32_t flags, Address pc, ApproxType approxType);
 
         void processWritebackOnAccess(Address lineAddr, uint32_t lineId, AccessType type);
 
         void processInval(Address lineAddr, uint32_t lineId, InvType type, bool* reqWriteback);
 
         uint64_t processNonInclusiveWriteback(Address lineAddr, AccessType type, uint64_t cycle, MESIState* state, uint32_t srcId, uint32_t flags, Address pc);
-
-        bool isApprox(const Address lineAddr);
 
         inline void lock() {
             futex_lock(&ccLock);
@@ -228,8 +227,6 @@ class MESITopCC : public GlobAlloc {
                 MESIState* childState, bool* inducedWriteback, uint64_t cycle, uint32_t srcId, uint32_t flags);
 
         uint64_t processInval(Address lineAddr, uint32_t lineId, InvType type, bool* reqWriteback, uint64_t cycle, uint32_t srcId);
-
-        bool isApprox(const Address lineAddr);
 
         inline void lock() {
             futex_lock(&ccLock);
@@ -344,7 +341,7 @@ class MESICC : public CC {
         uint64_t processEviction(const MemReq& triggerReq, Address wbLineAddr, int32_t lineId, uint64_t startCycle) {
             bool lowerLevelWriteback = false;
             uint64_t evCycle = tcc->processEviction(wbLineAddr, lineId, &lowerLevelWriteback, startCycle, triggerReq.srcId); //1. if needed, send invalidates/downgrades to lower level
-            evCycle = bcc->processEviction(wbLineAddr, lineId, lowerLevelWriteback, evCycle, triggerReq.srcId, triggerReq.pc); //2. if needed, write back line to upper level
+            evCycle = bcc->processEviction(wbLineAddr, lineId, lowerLevelWriteback, evCycle, triggerReq.srcId, triggerReq.pc, triggerReq.approxType); //2. if needed, write back line to upper level
             return evCycle;
         }
 
@@ -366,7 +363,7 @@ class MESICC : public CC {
                 uint32_t flags = req.flags & ~MemReq::PREFETCH; //always clear PREFETCH, this flag cannot propagate up
 
                 //if needed, fetch line or upgrade miss from upper level
-                respCycle = bcc->processAccess(req.lineAddr, lineId, req.type, startCycle, req.srcId, flags, req.pc);
+                respCycle = bcc->processAccess(req.lineAddr, lineId, req.type, startCycle, req.srcId, flags, req.pc, req.approxType);
                 if (getDoneCycle) *getDoneCycle = respCycle;
                 if (!isPrefetch) { //prefetches only touch bcc; the demand request from the core will pull the line to lower level
                     //At this point, the line is in a good state w.r.t. upper levels
@@ -462,7 +459,7 @@ class MESITerminalCC : public CC {
 
         uint64_t processEviction(const MemReq& triggerReq, Address wbLineAddr, int32_t lineId, uint64_t startCycle) {
             bool lowerLevelWriteback = false;
-            uint64_t endCycle = bcc->processEviction(wbLineAddr, lineId, lowerLevelWriteback, startCycle, triggerReq.srcId, triggerReq.pc); //2. if needed, write back line to upper level
+            uint64_t endCycle = bcc->processEviction(wbLineAddr, lineId, lowerLevelWriteback, startCycle, triggerReq.srcId, triggerReq.pc, triggerReq.approxType); //2. if needed, write back line to upper level
             return endCycle;  // critical path unaffected, but TimingCache needs it
         }
 
@@ -470,7 +467,7 @@ class MESITerminalCC : public CC {
             assert(lineId != -1);
             assert(!getDoneCycle);
             //if needed, fetch line or upgrade miss from upper level
-            uint64_t respCycle = bcc->processAccess(req.lineAddr, lineId, req.type, startCycle, req.srcId, req.flags, req.pc);
+            uint64_t respCycle = bcc->processAccess(req.lineAddr, lineId, req.type, startCycle, req.srcId, req.flags, req.pc, req.approxType);
             //at this point, the line is in a good state w.r.t. upper levels
             return respCycle;
         }

@@ -53,7 +53,7 @@
 struct gm_segment {
     volatile void* base_regp; //common data structure, accessible with glob_ptr; threads poll on gm_isready to determine when everything has been initialized
     volatile void* secondary_regp; //secondary data structure, used to exchange information between harness and initializing process
-    volatile void* approx_regp; // approximation region data struction, accessible with approx_ptr
+    volatile void* approx_regp; // approximation region data structure, accessible with approx_ptr
     mspace mspace_ptr;
 
     PAD();
